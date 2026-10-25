@@ -3,6 +3,12 @@ from typing import List
 from function import Function
 class Population:
     def __init__(self, n: int, fitness_function: Function, x_min: int, x_max: int):
+        if n <= 0:
+         raise ValueError("Liczebność populacji musi być większa od zera")
+
+        if x_min > x_max:
+            raise ValueError("x_min musi być mniejsze lub równe x_max")
+        
         self.n: int = n
         self.x_min: int = x_min
         self.x_max: int = x_max

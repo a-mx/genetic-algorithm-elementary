@@ -1,7 +1,6 @@
 
 from population import Population
 from generations import Generations
-from plotter import Plotter
 from function import Function
 import tkinter as tk
 from tkinter import ttk, messagebox
@@ -27,9 +26,9 @@ class GAApp:
         params = ttk.LabelFrame(root, text="Parametry")
         params.grid(row=0, column=0, padx=10, pady=10, sticky="n")
 
-        self.pop_size = tk.IntVar(value=20)
-        self.p_cross = tk.DoubleVar(value=0.5)
-        self.p_mut = tk.DoubleVar(value=0.01)
+        self.pop_size = tk.IntVar(value=100)
+        self.p_cross = tk.DoubleVar(value=0.75)
+        self.p_mut = tk.DoubleVar(value=0.001)
         self.gen_count = tk.IntVar(value=100)
         self.func_name = tk.StringVar(value=list(FITNESS_FUNCTIONS)[0])
 

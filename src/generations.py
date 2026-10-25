@@ -1,12 +1,22 @@
 import random
 from candidate import Candidate
-from population import Population
+
 class Generations:
     def __init__(self,
                  population,
                  p_crossover: float = 0.75,
                  p_mutation: float = 0.001,
                  generation_count: int = 1000):
+        
+        if not 0 <= p_crossover <= 1:
+            raise ValueError("Prawdopodobieństwo krzyżowania musi być w zakresie 0..1")
+
+        if not 0 <= p_mutation <= 1:
+            raise ValueError("Prawdopodobieństwo mutacji musi być w zakresie 0..1")
+
+        if generation_count < 0:
+            raise ValueError("Liczba pokoleń nie może być ujemna")
+        
         self.population = population
         self.fitness_function = self.population.fitness_function
         self.p_crossover = p_crossover
@@ -23,32 +33,83 @@ class Generations:
 
     def crossover(self):
         new_pop = []
-        n = len(self.population.population)
+        population = self.population.population
+        n = len(population)
 
         for i in range(0, n - 1, 2):
-            c1 = self.population.population[i]
-            c2 = self.population.population[i + 1]
-            r1 = list(c1.representation)
-            r2 = list(c2.representation)
+            parent1 = population[i]
+            parent2 = population[i + 1]
 
-            if random.random() < self.p_crossover:
-                k = random.randint(1, len(r1) - 1)
-                r1, r2 = r1[:k] + r2[k:], r2[:k] + r1[k:]
+            representation1 = list(parent1.representation)
+            representation2 = list(parent2.representation)
 
-            new_pop.append(Candidate(r1, self.fitness_function, x_min=self.population.x_min, x_max=self.population.x_max))
-            new_pop.append(Candidate(r2, self.fitness_function, x_min=self.population.x_min, x_max=self.population.x_max))
+            if (
+                random.random() < self.p_crossover
+                and len(representation1) > 1
+            ):
+                point = random.randint(1, len(representation1) - 1)
+
+                representation1, representation2 = (
+                    representation1[:point] + representation2[point:],
+                    representation2[:point] + representation1[point:],
+                )
+
+            child1 = Candidate(
+                representation1,
+                self.fitness_function,
+                x_min=self.population.x_min,
+                x_max=self.population.x_max,
+            )
+
+            child2 = Candidate(
+                representation2,
+                self.fitness_function,
+                x_min=self.population.x_min,
+                x_max=self.population.x_max,
+            )
+
+            if not child1.is_valid():
+                child1 = Candidate(
+                    fitness_func=self.fitness_function,
+                    x_min=self.population.x_min,
+                    x_max=self.population.x_max,
+                )
+
+            if not child2.is_valid():
+                child2 = Candidate(
+                    fitness_func=self.fitness_function,
+                    x_min=self.population.x_min,
+                    x_max=self.population.x_max,
+                )
+
+            new_pop.extend([child1, child2])
 
         if n % 2 == 1:
-            last = list(self.population[-1].representation)
-            new_pop.append(Candidate(last, self.fitness_function, x_min=self.population.x_min, x_max=self.population.x_max))
+            last = population[-1]
+
+            new_pop.append(
+                Candidate(
+                    list(last.representation),
+                    self.fitness_function,
+                    x_min=self.population.x_min,
+                    x_max=self.population.x_max,
+                )
+            )
 
         self.population.population = new_pop
 
     def mutation(self):
-        for c in self.population:
-            for idx in range(len(c.representation)):
+        for candidate in self.population:
+            old_representation = candidate.representation.copy()
+
+            for index in range(len(candidate.representation)):
                 if random.random() < self.p_mutation:
-                    c.representation[idx] = 1 - c.representation[idx]
+                    candidate.representation[index] = (
+                        1 - candidate.representation[index]
+                    )
+
+            if not candidate.is_valid():
+                candidate.representation = old_representation
 
     def collect_stats(self):
         fits = [c.get_fitness() for c in self.population]
