@@ -11,26 +11,19 @@ matplotlib.use("TkAgg")
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
-
-FITNESS_FUNCTIONS = {
-    "kwadratowa (testowa)": Function([6, 5.5, -0.2]),
-    "liniowa":           Function([1, -2]),
-    "stała":             Function([10]),
-}
-
 class GAApp:
     def __init__(self, root: tk.Tk):
         self.root = root
         root.title("AE")
 
         params = ttk.LabelFrame(root, text="Parametry")
-        params.grid(row=0, column=0, padx=10, pady=10, sticky="n")
+        params.grid(row=0, column=0, padx=20, pady=10, sticky="n")
 
         self.pop_size = tk.IntVar(value=100)
         self.p_cross = tk.DoubleVar(value=0.75)
         self.p_mut = tk.DoubleVar(value=0.001)
         self.gen_count = tk.IntVar(value=100)
-        self.func_name = tk.StringVar(value=list(FITNESS_FUNCTIONS)[0])
+        self.coefficients = tk.StringVar(value="6, 5.5, -0.2")
 
         self.x_min = tk.IntVar(value=-1)
         self.x_max = tk.IntVar(value=28)
@@ -43,11 +36,12 @@ class GAApp:
         self.gen_count_entry  = ttk.Entry(params, textvariable=self.gen_count)
         self.x_min_entry = ttk.Entry(params, textvariable=self.x_min)
         self.x_max_entry = ttk.Entry(params, textvariable=self.x_max)
-        
 
-        self.func_combo = ttk.Combobox(
-            params, textvariable=self.func_name,
-            values=list(FITNESS_FUNCTIONS), state="readonly")
+
+        self.coefficients_entry = ttk.Entry(
+            params,
+            textvariable=self.coefficients
+        )
 
         self.seed_entry = ttk.Entry(params, textvariable=self.seed)
 
@@ -56,17 +50,16 @@ class GAApp:
             ("P. krzyżowania:",       self.p_cross_entry),
             ("P. mutacji:",           self.p_mut_entry),
             ("Liczba pokoleń:",       self.gen_count_entry),
-            ("Funkcja przystosowania:",  self.func_combo),
+            ("Współczynniki a0,a1,...:", self.coefficients_entry),
             ("x min:", self.x_min_entry),
             ("x max:", self.x_max_entry),
             ("Ziarno:",               self.seed_entry),
         ]
 
         for r, (label, widget) in enumerate(rows):
-            ttk.Label(params, text=label).grid(row=r, column=0, sticky="w", pady=2)
-            widget.grid(row=r, column=1, sticky="ew", pady=2)
+            ttk.Label(params, text=label).grid(row=r, column=0, sticky="w", pady=3)
+            widget.grid(row=r, column=1, sticky="ew", pady=3)
 
-        self.func_combo.bind("<<ComboboxSelected>>", self.on_function_selected)
 
         ttk.Button(params, text="Uruchom", command=self.run_ga)\
             .grid(row=len(rows), column=0, columnspan=2, pady=10, sticky="ew")
@@ -89,20 +82,32 @@ class GAApp:
         self.canvas_hist = FigureCanvasTkAgg(self.fig_hist, plots)
         self.canvas_hist.get_tk_widget().pack(fill="both", expand=True)
 
-        self.draw_function(FITNESS_FUNCTIONS[self.func_name.get()])
+        self.draw_function(self.get_selected_function())
 
-    def on_function_selected(self, event=None):
-        self.draw_function(FITNESS_FUNCTIONS[self.func_name.get()])
-        self.result.configure(state="normal")
-        self.result.delete("1.0", tk.END)
-        self.result.configure(state="disabled")
+    def get_selected_function(self):
+        try:
+            coefficients = [
+                float(value.strip())
+                for value in self.coefficients.get().split(",")
+                if value.strip()
+            ]
+
+            if not coefficients:
+                raise ValueError("Podaj co najmniej jeden współczynnik")
+
+            return Function(coefficients)
+
+        except ValueError:
+            raise ValueError(
+                "Współczynniki muszą być liczbami oddzielonymi przecinkami"
+            )
 
     def run_ga(self):
         try:
             if self.seed.get().strip():
                 random.seed(int(self.seed.get()))
 
-            fitness = FITNESS_FUNCTIONS[self.func_name.get()]
+            fitness = self.get_selected_function()
             n = self.pop_size.get()
 
             x_min = self.x_min.get()
@@ -118,15 +123,14 @@ class GAApp:
             history = gen.run()
 
             best = max(gen.population, key=lambda c: c.get_fitness())
-            self.show_result(best, fitness)
+            self.show_result(best)
             self.draw_function(fitness)
-            print(history)
             self.draw_history(history)
 
         except Exception as e:
             messagebox.showerror("Błąd", str(e))
 
-    def show_result(self, best, fitness):
+    def show_result(self, best):
         self.result.configure(state="normal")
         self.result.delete("1.0", tk.END)
         self.result.insert(tk.END, f"Najlepszy x: {best.get_value()}\n")

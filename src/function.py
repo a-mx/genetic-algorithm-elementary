@@ -1,4 +1,3 @@
-from pathlib import Path
 from typing import List
 class Function:
     def __init__(self, coef: List[float]):
