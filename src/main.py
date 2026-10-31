@@ -95,7 +95,7 @@ class GAApp:
             if not coefficients:
                 raise ValueError("Podaj co najmniej jeden współczynnik")
 
-            return Function(coefficients)
+            return Function(coefficients, self.x_min.get(), self.x_max.get())
 
         except ValueError:
             raise ValueError(
@@ -122,8 +122,7 @@ class GAApp:
             )
             history = gen.run()
 
-            best = max(gen.population, key=lambda c: c.get_fitness())
-            self.show_result(best)
+            self.show_result(gen.best)
             self.draw_function(fitness)
             self.draw_history(history)
 

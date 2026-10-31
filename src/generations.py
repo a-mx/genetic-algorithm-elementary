@@ -23,6 +23,20 @@ class Generations:
         self.p_mutation = p_mutation
         self.generation_count = generation_count
         self.history = {"min": [], "avg": [], "max": []}
+        self.best = None
+
+    def _copy_candidate(self, candidate):
+        return Candidate(
+            representation=list(candidate.representation),
+            fitness_func=self.fitness_function,
+            x_min=self.population.x_min,
+            x_max=self.population.x_max,
+        )
+
+    def _update_best(self):
+        candidate = max(self.population, key=lambda item: item.get_fitness())
+        if self.best is None or candidate.get_fitness() > self.best.get_fitness():
+            self.best = self._copy_candidate(candidate)
 
     def selection(self):
         sorted_pop = sorted(self.population, key=lambda x: x.get_fitness(), reverse=True)
@@ -124,7 +138,9 @@ class Generations:
 
     def run(self):
         self.collect_stats()
+        self._update_best()
         for _ in range(self.generation_count):
             self.run_generation()
             self.collect_stats()
+            self._update_best()
         return self.history
